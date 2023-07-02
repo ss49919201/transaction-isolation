@@ -47,16 +47,23 @@ func main() {
 		panic(err)
 	}
 
-	// non-repeatable read
 	var counter int
 	err = tx.QueryRow("SELECT counter FROM tbl WHERE id = 1").Scan(&counter)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("tx counter: ", counter) // 別のTXの未コミットの更新が参照できるので 2 が出力される
+	fmt.Println("tx counter: ", counter) // 別のTXのコミット前の更新は反映されないので1が出力される。
+
+	tx2.Commit()
+
+	// non-repeatable read
+	err = tx.QueryRow("SELECT counter FROM tbl WHERE id = 1").Scan(&counter)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("tx counter: ", counter) // 別のTXのコミット後の更新が反映されるので2が出力される。
 
 	tx.Rollback()
-	tx2.Rollback()
 }
 
 func dsn() string {
