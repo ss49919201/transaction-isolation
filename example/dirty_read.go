@@ -36,13 +36,8 @@ func main() {
 		panic(err)
 	}
 
-	// どちらのセッションも dirty read が発生する READ UNCOMMITTED にしておく
+	// dirty read を発生させたいセッションのみ READ UNCOMMITTED にしておく
 	_, err = conn.QueryContext(context.Background(), "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED")
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = conn2.QueryContext(context.Background(), "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED")
 	if err != nil {
 		panic(err)
 	}
