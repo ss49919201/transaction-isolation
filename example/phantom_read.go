@@ -8,7 +8,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-// non-repeatable read
+// dirty read
 // 他のTXの**未コミット**の更新が参照できてしまう
 func main() {
 	// DBではなくConnを生成する必要あり
@@ -27,8 +27,8 @@ func main() {
 		panic(err)
 	}
 
-	// non-repeatable read を発生させたいセッションのみ READ COMMITTED にしておく
-	_, err = conn.QueryContext(context.Background(), "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
+	// dirty read を発生させたいセッションのみ READ UNCOMMITTED にしておく
+	_, err = conn.QueryContext(context.Background(), "SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED")
 	if err != nil {
 		panic(err)
 	}
@@ -47,23 +47,16 @@ func main() {
 		panic(err)
 	}
 
+	// dirty read
 	var counter int
 	err = tx.QueryRow("SELECT counter FROM tbl WHERE id = 1").Scan(&counter)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("tx counter: ", counter) // 別のTXのコミット前の更新は反映されないので1が出力される。
-
-	tx2.Commit()
-
-	// non-repeatable read
-	err = tx.QueryRow("SELECT counter FROM tbl WHERE id = 1").Scan(&counter)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("tx counter: ", counter) // 別のTXのコミット後の更新が反映されるので2が出力される。
+	fmt.Println("tx counter: ", counter) // 別のTXの未コミットの更新が参照できるので 2 が出力される
 
 	tx.Rollback()
+	tx2.Rollback()
 }
 
 func dsn() string {

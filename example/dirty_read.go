@@ -16,22 +16,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	if err := ping(db); err != nil {
-		panic(err)
-	}
+
 	conn, err := db.Conn(context.Background())
 	if err != nil {
 		panic(err)
 	}
 
-	db2, err := sql.Open("mysql", dsn())
-	if err != nil {
-		panic(err)
-	}
-	if err := ping(db2); err != nil {
-		panic(err)
-	}
-	conn2, err := db2.Conn(context.Background())
+	conn2, err := db.Conn(context.Background())
 	if err != nil {
 		panic(err)
 	}
@@ -66,10 +57,6 @@ func main() {
 
 	tx.Rollback()
 	tx2.Rollback()
-}
-
-func ping(db *sql.DB) error {
-	return db.Ping()
 }
 
 func dsn() string {
