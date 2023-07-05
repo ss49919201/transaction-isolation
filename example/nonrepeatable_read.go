@@ -17,7 +17,7 @@ func main() {
 		panic(err)
 	}
 
-	// 発生する
+	// 発生する(更新)
 	{
 		conn, err := db.Conn(context.Background())
 		if err != nil {
@@ -71,6 +71,65 @@ func main() {
 	// データを戻す
 	_, err = db.Query("UPDATE tbl SET counter = 1 WHERE id = 1")
 	if err != nil {
+		panic(err)
+	}
+
+	// 発生する(削除)
+	{
+		conn, err := db.Conn(context.Background())
+		if err != nil {
+			panic(err)
+		}
+
+		conn2, err := db.Conn(context.Background())
+		if err != nil {
+			panic(err)
+		}
+
+		// non-repeatable read を発生させたいセッションのみ READ COMMITTED にしておく
+		_, err = conn.QueryContext(context.Background(), "SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
+		if err != nil {
+			panic(err)
+		}
+
+		tx, err := conn.BeginTx(context.Background(), nil)
+		if err != nil {
+			panic(err)
+		}
+
+		tx2, err := conn2.BeginTx(context.Background(), nil)
+		if err != nil {
+			panic(err)
+		}
+		_, err = tx2.Query("DELETE FROM tbl WHERE id = 1")
+		if err != nil {
+			panic(err)
+		}
+
+		var counter int
+		err = tx.QueryRow("SELECT counter FROM tbl WHERE id = 1").Scan(&counter)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("tx counter: ", counter) // 別のTXのコミット前の更新は反映されないので1が出力される。
+
+		tx2.Commit()
+
+		// non-repeatable read
+		err = tx.QueryRow("SELECT counter FROM tbl WHERE id = 1").Scan(&counter)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				fmt.Println("no row") // 別のTXのコミット済みの削除が反映されるので、"no row"が出力される。
+			} else {
+				panic(err)
+			}
+		}
+
+		tx.Rollback()
+	}
+
+	// データを戻す
+	if _, err := db.Query("INSERT INTO tbl (id, name, counter) VALUES('1', 'A', '1')"); err != nil {
 		panic(err)
 	}
 
