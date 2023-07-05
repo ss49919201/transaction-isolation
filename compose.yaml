@@ -1,0 +1,16 @@
+services:
+  db:
+    image: mysql:8.0
+    platform: linux/x86_64
+    container_name: mydb
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: mydb
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      TZ: 'Asia/Tokyo'
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --general_log=1
+    volumes:
+      - ./docker/db/data:/var/lib/mysql
+    ports:
+      - 3306:3306
